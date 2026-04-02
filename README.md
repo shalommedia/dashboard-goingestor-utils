@@ -7,6 +7,7 @@ Shared Go utilities for Lambda projects.
 - `s3client`: reusable AWS S3 client creation helpers
 - `secretsmanagerclient`: reusable AWS Secrets Manager read helpers
 - `pagination`: generic pagination and retry helpers for SDK or HTTP-based APIs
+- `logger`: shared structured logging helpers for Lambda services
 
 ## Usage
 
@@ -61,6 +62,16 @@ contacts, err := pagination.FetchAllPages(ctx, "", func(ctx context.Context, cur
 		HasMore: resp.Paging != nil && resp.Paging.Next.After != "",
 	}, nil
 }, pagination.RetryOptions{})
+```
+
+```go
+log := logger.New(logger.Config{
+	Service: "hubspot-sync",
+	Level:   "info",
+})
+
+log.Info("sync started", "job_id", jobID)
+log.Error("sync failed", "error", err)
 ```
 
 ## Note
