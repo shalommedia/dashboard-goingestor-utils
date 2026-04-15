@@ -8,7 +8,7 @@ Shared Go utilities for Lambda projects.
 - `secretsmanagerclient`: reusable AWS Secrets Manager read helpers
 - `pagination`: generic pagination and retry helpers for SDK or HTTP-based APIs
 - `logger`: shared structured logging helpers for Lambda services
-- `hubspot`: HubSpot transport client with auth headers, retries, rate-limit parsing, and CRM helpers for contacts, deals, custom objects, and associations
+- `hubspot`: HubSpot transport client with auth headers, retries, rate-limit parsing, and CRM helpers for contacts, deals, custom objects, associations, notes, and property metadata
 
 ## Usage
 
@@ -166,6 +166,60 @@ if err := hubspotClient.DeleteContact(ctx, updated.ID); err != nil {
 }
 
 _ = searchPage
+```
+
+### HubSpot Notes With PDF Attachments
+
+HubSpot note attachments use file IDs from the HubSpot Files tool. Upload the PDF to HubSpot first, then attach the returned file ID when creating or updating the note.
+
+```go
+note, err := hubspotClient.CreateNote(ctx, hubspot.CreateNoteRequest{
+	Body:          "Attached the signed proposal PDF.",
+	Timestamp:     time.Now(),
+	AttachmentIDs: []string{"24332474034"},
+	Associations: []hubspot.NoteAssociation{{
+		To: hubspot.NoteAssociationTarget{ID: "581751"},
+		Types: []hubspot.AssociationType{{
+			AssociationCategory: "HUBSPOT_DEFINED",
+			AssociationTypeID:   202,
+		}},
+	}},
+})
+if err != nil {
+	log.Printf("failed to create note: %v", err)
+}
+
+note, err = hubspotClient.SetNoteAttachments(ctx, note.ID, []string{"24332474034", "24332474044"})
+if err != nil {
+	log.Printf("failed to attach files to note: %v", err)
+}
+
+_ = note
+```
+
+### HubSpot File Upload To Folder ID
+
+```go
+uploadedFile, err := hubspotClient.UploadPDFToFolder(ctx, hubspot.UploadPDFToFolderRequest{
+	FileName: "proposal.pdf",
+	FileData: pdfBytes,
+	FolderID: "122692510820",
+	Access:   "PRIVATE", // optional, defaults to PRIVATE
+})
+if err != nil {
+	log.Printf("failed to upload pdf: %v", err)
+}
+
+note, err := hubspotClient.CreateNote(ctx, hubspot.CreateNoteRequest{
+	Body:          "Attached proposal",
+	Timestamp:     time.Now(),
+	AttachmentIDs: []string{uploadedFile.ID},
+})
+if err != nil {
+	log.Printf("failed to create note with attachment: %v", err)
+}
+
+_ = note
 ```
 
 ## Streaming APIs (For Large Datasets)
