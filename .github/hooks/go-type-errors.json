@@ -1,0 +1,13 @@
+{
+    "hooks": {
+        "PostToolUse": [
+            {
+                "type": "command",
+                "command": "pwsh -NoProfile -File ./.github/hooks/scripts/check-go-type-errors.ps1",
+                "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\.github\\hooks\\scripts\\check-go-type-errors.ps1",
+                "cwd": ".",
+                "timeout": 60
+            }
+        ]
+    }
+}

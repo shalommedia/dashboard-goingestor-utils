@@ -73,6 +73,34 @@ func FetchAllPages[T any, C any](ctx context.Context, initialCursor C, fetcher P
 	}
 }
 
+// PageHandler is called once per fetched page during streaming pagination.
+type PageHandler[T any, C any] func(ctx context.Context, page PageResult[T, C]) error
+
+// FetchPagesStreaming keeps requesting pages until the provider reports there are no more pages.
+// Instead of accumulating all items in memory, it calls the handler function for each page,
+// allowing callers to process and discard pages incrementally.
+// This is ideal for large result sets that would exceed Lambda memory limits.
+func FetchPagesStreaming[T any, C any](ctx context.Context, initialCursor C, fetcher PageFetcher[T, C], opts RetryOptions, handler PageHandler[T, C]) error {
+	cursor := initialCursor
+
+	for {
+		page, err := FetchWithRetries(ctx, cursor, fetcher, opts)
+		if err != nil {
+			return err
+		}
+
+		if err := handler(ctx, page); err != nil {
+			return fmt.Errorf("page handler failed: %w", err)
+		}
+
+		if !page.HasMore {
+			return nil
+		}
+
+		cursor = page.Next
+	}
+}
+
 func normalizeRetryOptions(opts RetryOptions) RetryOptions {
 	if opts.MaxAttempts <= 0 {
 		opts.MaxAttempts = 3

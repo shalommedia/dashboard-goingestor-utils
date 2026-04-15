@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -70,49 +71,62 @@ func UnmarshalSecret(ctx context.Context, secretID string, target any) error {
 }
 
 func getSecretString(ctx context.Context, client getSecretValueAPI, secretID string) (string, error) {
+	secretRef := redactedSecretRef(secretID)
+
 	output, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
 		SecretId: &secretID,
 	})
 	if err != nil {
-		return "", fmt.Errorf("get secret value secret_id=%s: %w", secretID, err)
+		return "", fmt.Errorf("get secret value secret_ref=%s: %w", secretRef, err)
 	}
 
 	if output.SecretString == nil {
-		return "", fmt.Errorf("secret string is empty for secret_id=%s", secretID)
+		return "", fmt.Errorf("secret string is empty secret_ref=%s", secretRef)
 	}
 
 	return *output.SecretString, nil
 }
 
 func getSecretValue(ctx context.Context, client getSecretValueAPI, secretID, key string) (string, error) {
+	secretRef := redactedSecretRef(secretID)
+
 	secretString, err := getSecretString(ctx, client, secretID)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("read secret payload secret_ref=%s: %w", secretRef, err)
 	}
 
 	// This helper is intentionally narrow: it is meant for flat JSON secrets such as API keys.
 	values := make(map[string]string)
 	if err := json.Unmarshal([]byte(secretString), &values); err != nil {
-		return "", fmt.Errorf("unmarshal secret json secret_id=%s: %w", secretID, err)
+		return "", fmt.Errorf("unmarshal secret json: %w", err)
 	}
 
 	value, ok := values[key]
 	if !ok {
-		return "", fmt.Errorf("secret key=%s not found in secret_id=%s", key, secretID)
+		return "", fmt.Errorf("requested secret key not found secret_ref=%s", secretRef)
 	}
 
 	return value, nil
 }
 
 func unmarshalSecret(ctx context.Context, client getSecretValueAPI, secretID string, target any) error {
+	secretRef := redactedSecretRef(secretID)
+
 	secretString, err := getSecretString(ctx, client, secretID)
 	if err != nil {
-		return err
+		return fmt.Errorf("read secret payload secret_ref=%s: %w", secretRef, err)
 	}
 
 	if err := json.Unmarshal([]byte(secretString), target); err != nil {
-		return fmt.Errorf("unmarshal secret json secret_id=%s: %w", secretID, err)
+		return fmt.Errorf("unmarshal secret json secret_ref=%s: %w", secretRef, err)
 	}
 
 	return nil
+}
+
+func redactedSecretRef(secretID string) string {
+	hasher := fnv.New64a()
+	_, _ = hasher.Write([]byte(secretID))
+
+	return fmt.Sprintf("fnv64a:%016x", hasher.Sum64())
 }
