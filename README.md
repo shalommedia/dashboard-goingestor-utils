@@ -8,7 +8,7 @@ Shared Go utilities for Lambda projects.
 - `secretsmanagerclient`: reusable AWS Secrets Manager read helpers
 - `pagination`: generic pagination and retry helpers for SDK or HTTP-based APIs
 - `logger`: shared structured logging helpers for Lambda services
-- `hubspot`: HubSpot transport client with auth headers, retries, rate-limit parsing, and CRM helpers for contacts, deals, custom objects, associations, notes, and property metadata
+- `hubspot`: HubSpot transport client with auth headers, retries, rate-limit parsing, and CRM helpers for contacts, deals, subscriptions, custom objects, associations, notes, and property metadata
 
 ## Usage
 

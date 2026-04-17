@@ -48,7 +48,7 @@ The current module path is `github.com/shalommedia/dashboard-goingestor-utils` a
   - Injects auth and default headers in one place to keep domain modules thin.
   - Keeps retry behavior centralized and configurable through `RetryPolicy`.
   - Exposes `ParseRateLimitHeaders` and `AdaptiveThrottle` so callers can observe and adapt to HubSpot quotas.
-  - Includes contacts, deals, custom objects, and associations domain helpers built on top of the shared transport.
+  - Includes contacts, deals, subscriptions, custom objects, and associations domain helpers built on top of the shared transport.
 
 ## Cross-Cutting Patterns
 
